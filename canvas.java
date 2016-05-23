@@ -41,14 +41,14 @@ public class Canvas extends JPanel{
 		//int[] xArray = {0, 25, 25, 0};
 		//int[] yArray = {0, 0, 50, 0};
 		
-		int[] xArray = {0, 0, 75, 0};
-		int[] yArray = {0, 50, 50, 0};
+		int[] xArray = {0, 15, 30, 25, 10, 0};
+		int[] yArray = {30, 0, 30, 30, 10, 30};
 		
-		int[] xArray2 = {0, 0, 25, 50, 0};
-		int[] yArray2 = {0, 50, 50, 0, 0};
+		int[] xArray2 = {0, 15, 30, 0};
+		int[] yArray2 = {0, 30, 10, 0};
 		
 		Polygon poly1 = new Polygon(xArray, yArray, xArray.length);
-		poly1.translate(dx+25, dy+25);			
+		poly1.translate(dx+15, dy+25);			
 		g2.setColor(Color.blue);
 		g2.fill(poly1);
 		Path2D poly1p2d = new Path2D.Double(poly1); //create path from polygon to allow rotations
@@ -63,10 +63,16 @@ public class Canvas extends JPanel{
 		g2.setColor(Color.black);
 		g2.draw(poly2p2d);
 		
-		at.rotate(Math.toRadians(90));
-		g2.draw(poly2);
-		//drawLine();
-		//System.out.println(" Collide method returns a result of: " + collide(poly1p2d, poly2p2d));
+		at.rotate(Math.toRadians(0), dx, dy);
+		poly1p2d.transform(at);
+		poly2p2d.transform(at);
+		
+		//g2.setColor(Color.yellow);
+		//g2.draw(poly1p2d);
+		//System.out.println(poly1p2d.getBounds().getMinX() + " " + poly1p2d.getBounds().getMaxX());
+		//getMinMax(poly1p2d);
+		
+		System.out.println(" Collide method returns a result of: " + collide(poly1p2d, poly2p2d));
 	}
 	private Set<Double> getAxes(Path2D poly1, Path2D poly2){
 		Edge curedge;
@@ -78,9 +84,13 @@ public class Canvas extends JPanel{
 			double[] p2 = {vertices[i + 1 == vertices.length ? 0 : i + 1][0], 
 					vertices[i + 1 == vertices.length ? 0 : i + 1][1]};
 			System.out.println("Poly1 Edge (curEdge) from: " + p1[0] + " " + p1[1] + " to " + p2[0] + " " + p2[1]);
-			
+			if (p1[0] == p2[0] && p1[1] == p2[1]){
+				continue; //don't bother with vertices that are actually points
+			}
 			curedge = new Edge(p1, p2);
-			perpedge.add(Math.toDegrees(curedge.angleRad(curedge.perp()[0], curedge.perp()[1])));
+			System.out.println("Edge " + i + " : " + curedge.angleDeg());
+			perpedge.add(curedge.perpAngleDeg());
+			
 		}
 		vertices = getVertices(poly2);
 		for (int i=0; i < vertices.length; i++){
@@ -88,37 +98,42 @@ public class Canvas extends JPanel{
 			double[] p2 = {vertices[i + 1 == vertices.length ? 0 : i + 1][0], 
 					vertices[i + 1 == vertices.length ? 0 : i + 1][1]};
 			System.out.println("Poly2 Edge (curEdge) from: " + p1[0] + " " + p1[1] + " to " + p2[0] + " " + p2[1]);
-			
+			if (p1[0] == p2[0] && p1[1] == p2[1]){
+				continue; //don't bother with vertices that are actually points
+			}
 			curedge = new Edge(p1, p2);
-			perpedge.add(Math.toDegrees(curedge.angleRad(curedge.perp()[0], curedge.perp()[1])));
+			System.out.println("Edge " + i + " : " + curedge.angleDeg());
+			perpedge.add(curedge.perpAngleDeg());
+			//perpedge.add(Math.toDegrees(curedge.angleRad(curedge.perp()[0], curedge.perp()[1])));
 		}
 		
 		Set<Double> uniqAxes = new HashSet<Double>(perpedge);
 		return uniqAxes;
 	}
+	
 	public boolean collide(Path2D poly1, Path2D poly2){
-		Edge curedge;
-		double perpedge;
-		double vertices[][] = getVertices(poly1);
-		AffineTransform atOld = g2.getTransform();
+		//Edge curedge;
+		//double perpedge;
+		//double vertices[][] = getVertices(poly1);
+		//AffineTransform atOld = g2.getTransform();
 		for (Double axis : getAxes(poly1, poly2)){
 			
 			System.out.println("Testing Axis: " + axis);
-			at.rotate(Math.toRadians(axis));
-			Path2D poly1Copy = poly1;
-			Path2D poly2Copy = poly2;
+			at.rotate(Math.toRadians(axis), dx, dy);
+			Path2D poly1Copy = new Path2D.Double(poly1);
+			Path2D poly2Copy = new Path2D.Double(poly2);
 			
-			//poly1Copy.transform(at);
-			//poly2Copy.transform(at); //needed?
-			g2.transform(at);
+			poly1Copy.transform(at);
+			poly2Copy.transform(at); //needed?
+			//g2.transform(at);
 			g2.setColor(Color.yellow);
 			g2.draw(poly1Copy);
 			g2.draw(poly2Copy);
-			try {
-			    Thread.sleep(1000);                 //1000 milliseconds is one second.
-			} catch(InterruptedException ex) {
-			    Thread.currentThread().interrupt();
-			}			
+//			try {
+//			    Thread.sleep(1000);                 //1000 milliseconds is one second.
+//			} catch(InterruptedException ex) {
+//			    Thread.currentThread().interrupt();
+//			}			
 			if (!axisIntersect(poly1Copy, poly2Copy)){ //shapes dont intersect if 1 axis does not		
 				System.out.println("they dont intersect");
 				return false;
@@ -126,9 +141,9 @@ public class Canvas extends JPanel{
 			else {
 				System.out.println("they intersect");
 			}
-			poly1Copy.reset();
+			//poly1Copy.reset();
 			
-			g2.setTransform(atOld);
+			//g2.setTransform(atOld);
 		}
 		//all axises intersected.
 		
@@ -179,7 +194,7 @@ public class Canvas extends JPanel{
 		double maxX = poly.getBounds().getMaxX();
 		double minY = poly.getBounds().getMinY();
 		double maxY = poly.getBounds().getMaxY();
-		System.out.println("Bounds X: " + minX + " " + maxX);
+		//System.out.println("Bounds X: " + minX + " " + maxX);
 		System.out.println("Bounds Y: " + minY + " " + maxY);
 		double[] extent = {minX, maxX, minY, maxY};
 		return extent;
@@ -199,8 +214,9 @@ public class Canvas extends JPanel{
 		//return rangeIntersect(r0.y, r0.y + r0.getWidth(), r1.y, r1.y + r1.getWidth());
 		
 		double[] poly1Extents = getMinMax(poly1); //0 = xmin, 1=xmax, 2=ymin, 3=ymax
+		//System.out.println("xmin = " + poly1Extents[0] + " xmax = " + poly1Extents[1]);
 		double[] poly2Extents = getMinMax(poly2);
-		return rangeIntersect(poly1Extents[2], poly1Extents[3], poly2Extents[2], poly2Extents[3]); //0, 1 minx, maxx
+		return rangeIntersect(poly1Extents[2], poly1Extents[3], poly2Extents[2], poly2Extents[3]); //2, 3 miny, maxy
 		
 	}
 
